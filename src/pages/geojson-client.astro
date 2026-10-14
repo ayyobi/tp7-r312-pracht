@@ -1,15 +1,63 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import populationMain from "../assets/populationMain.json";
+
+// Récupérer toutes les années sans doublons
+const listePeriode = [...new Set(populationMain.map((d) => d["Période"]))].sort(
+  (a, b) => b - a,
+);
+
+// Sélectionner 2010 si disponible
+const anneeInitiale = listePeriode.includes(2010) ? 2010 : listePeriode[0];
 ---
 
 <Layout>
-  <main class="p-8">
-    <h1 class="text-3xl font-bold mb-4">TP7 — Carte GeoJSON côté client</h1>
+  <main class="mx-auto max-w-6xl px-6 py-10">
+    <h1 class="mb-4 text-3xl font-bold text-gray-900">
+      TP7 — Carte GeoJSON côté client
+    </h1>
 
-    <p class="mb-6">Population des départements français en 2010.</p>
+    <p class="mb-8 text-gray-600">
+      Population des départements français selon l'année sélectionnée.
+    </p>
 
-    <!-- JavaScript placera le graphique ici -->
-    <div id="carte"></div>
+    <!-- FILTRE ANNÉE -->
+    <div class="mb-8 flex flex-col gap-2">
+      <label for="periode" class="text-base font-semibold text-gray-800">
+        Choisir une année :
+      </label>
+
+      <select
+        id="periode"
+        class="w-48 cursor-pointer rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+      >
+        {
+          listePeriode.map((annee) => (
+            <option value={annee} selected={annee === anneeInitiale}>
+              {annee}
+            </option>
+          ))
+        }
+      </select>
+    </div>
+
+    <!-- INFORMATIONS -->
+    <div
+      id="informations"
+      role="status"
+      class="mb-6 rounded-lg bg-blue-50 p-4 text-sm text-blue-900"
+    >
+      Chargement des données...
+    </div>
+
+    <!-- CARTE -->
+    <section class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+      <h2 class="mb-4 text-xl font-semibold text-gray-900">
+        Répartition de la population
+      </h2>
+
+      <div id="carte" class="w-full overflow-x-auto"></div>
+    </section>
   </main>
 </Layout>
 
@@ -19,79 +67,128 @@ import Layout from "../layouts/Layout.astro";
   import departements from "../assets/departements.geojson.json";
   import populationMain from "../assets/populationMain.json";
 
-  // 1. Filtrer les données de population
-  const populationFiltree = populationMain.filter(
-    (d) =>
-      d["Période"] === 2010 &&
-      d["Sexe"].trim() === "Total" &&
-      d["Âge"].trim() === "Total" &&
-      d["Niveau Géo"] === "Département",
-  );
+  // Récupérer les éléments HTML
+  const elmYear = document.getElementById("periode") as HTMLSelectElement;
 
-  // 2. Associer chaque département à sa population
-  const populationParDepartement = new Map(
-    populationFiltree.map((d) => [d["Géographie"].trim(), d["Valeur"]]),
-  );
-
-  // 3. Ajouter la population aux départements GeoJSON
-  const departementsAvecPopulation = {
-    ...departements,
-
-    features: departements.features.map((departement) => ({
-      ...departement,
-
-      properties: {
-        ...departement.properties,
-
-        population:
-          populationParDepartement.get(departement.properties.nom) ?? null,
-      },
-    })),
-  };
-
-  // 4. Créer le graphique dans le navigateur
-  const graphique = Plot.plot({
-    title: "Population des départements français",
-
-    subtitle: "Année 2010 — Sexe : Total — Âge : Total",
-
-    caption: "Source : populationMain.json",
-
-    ariaLabel:
-      "Carte des départements français colorés selon leur population en 2010",
-
-    projection: {
-      type: "mercator",
-      domain: departements,
-    },
-
-    color: {
-      scheme: "blues",
-      legend: true,
-      label: "Nombre d'habitants",
-      unknown: "#eeeeee",
-    },
-
-    marks: [
-      Plot.geo(departementsAvecPopulation, {
-        fill: (d) => d.properties.population,
-        stroke: "white",
-        strokeWidth: 0.5,
-
-        title: (d) =>
-          `${d.properties.nom} : ${
-            d.properties.population === null
-              ? "Données indisponibles"
-              : d.properties.population.toLocaleString("fr-FR") + " habitants"
-          }`,
-      }),
-    ],
-  });
-
-  // 5. Afficher le graphique dans la page
   const carte = document.getElementById("carte");
 
-  if (carte) {
-    carte.appendChild(graphique);
+  const informations = document.getElementById("informations");
+
+  // Année sélectionnée
+  let selectedYear = Number(elmYear.value);
+
+  // Fonction pour construire la carte
+  function afficherCarte() {
+    console.log("--------------------------");
+    console.log("Année sélectionnée :", selectedYear);
+
+    // 1. Filtrer les données
+    const populationFiltree = populationMain.filter(
+      (d) =>
+        d["Période"] === selectedYear &&
+        d["Sexe"].trim() === "Total" &&
+        d["Âge"].trim() === "Total" &&
+        d["Niveau Géo"] === "Département",
+    );
+
+    console.log("Nombre de données trouvées :", populationFiltree.length);
+
+    console.log(
+      "Première donnée trouvée :",
+      populationFiltree[0] ?? "Aucune donnée",
+    );
+
+    // 2. Associer les départements à leur population
+    const populationParDepartement = new Map(
+      populationFiltree.map((d) => [d["Géographie"].trim(), d["Valeur"]]),
+    );
+
+    // 3. Ajouter les populations au GeoJSON
+    const departementsAvecPopulation = {
+      ...departements,
+
+      features: departements.features.map((departement) => ({
+        ...departement,
+
+        properties: {
+          ...departement.properties,
+
+          population:
+            populationParDepartement.get(departement.properties.nom) ?? null,
+        },
+      })),
+    };
+
+    // 4. Compter les départements avec des données
+    const departementsAvecDonnees = departementsAvecPopulation.features.filter(
+      (d) => d.properties.population !== null,
+    ).length;
+
+    console.log("Départements avec des données :", departementsAvecDonnees);
+
+    // 5. Afficher les informations
+    if (informations) {
+      informations.textContent =
+        `Année : ${selectedYear} | ` +
+        `Lignes trouvées : ${populationFiltree.length} | ` +
+        `Départements avec données : ${departementsAvecDonnees}`;
+    }
+
+    // 6. Créer la carte
+    const graphique = Plot.plot({
+      title: "Population des départements français",
+
+      subtitle: `Année ${selectedYear} — Sexe : Total — Âge : Total`,
+
+      caption: "Source : populationMain.json",
+
+      ariaLabel: `Carte des départements français selon leur population en ${selectedYear}`,
+
+      width: 850,
+
+      projection: {
+        type: "mercator",
+        domain: departements,
+      },
+
+      color: {
+        scheme: "blues",
+        legend: true,
+        label: "Nombre d'habitants",
+        unknown: "#eeeeee",
+      },
+
+      marks: [
+        Plot.geo(departementsAvecPopulation, {
+          fill: (d) => d.properties.population,
+
+          stroke: "white",
+
+          strokeWidth: 0.5,
+
+          title: (d) =>
+            `${d.properties.nom} : ${
+              d.properties.population === null
+                ? "Données indisponibles"
+                : d.properties.population.toLocaleString("fr-FR") + " habitants"
+            }`,
+        }),
+      ],
+    });
+
+    // 7. Remplacer l'ancienne carte
+    if (carte) {
+      carte.replaceChildren(graphique);
+    }
   }
+
+  // Afficher la carte au chargement
+  afficherCarte();
+
+  // Mettre à jour la carte quand l'année change
+  elmYear.addEventListener("change", () => {
+    selectedYear = Number(elmYear.value);
+
+    afficherCarte();
+  });
 </script>
