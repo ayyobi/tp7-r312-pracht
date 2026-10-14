@@ -2,10 +2,12 @@
 import Layout from "../layouts/Layout.astro";
 import populationMain from "../assets/populationMain.json";
 
-// 1. Liste des années sans doublons
-const listePeriode = [...new Set(populationMain.map((d) => d["Période"]))].sort(
-  (a, b) => b - a,
-);
+// 1. Liste des années sans doublons (2015 exclue : pas de données Homme/Femme)
+const listePeriode = [
+  ...new Set(
+    populationMain.map((d) => d["Période"]).filter((annee) => annee !== 2015),
+  ),
+].sort((a, b) => b - a);
 
 // 2. Liste des sexes sans doublons
 const listeSexe = [...new Set(populationMain.map((d) => d["Sexe"].trim()))];
@@ -13,8 +15,8 @@ const listeSexe = [...new Set(populationMain.map((d) => d["Sexe"].trim()))];
 // 3. Liste des âges sans doublons
 const listeAge = [...new Set(populationMain.map((d) => d["Âge"].trim()))];
 
-// Année initiale
-const anneeInitiale = listePeriode.includes(2010) ? 2010 : listePeriode[0];
+// Année initiale : la plus récente (2021 contient Total, Homme et Femme)
+const anneeInitiale = listePeriode[0];
 
 // Sexe initial
 const sexeInitial = listeSexe.includes("Total") ? "Total" : listeSexe[0];
