@@ -9,6 +9,11 @@ const listePeriode = [...new Set(populationMain.map((d) => d["Période"]))].sort
 
 // Sélectionner 2010 si disponible
 const anneeInitiale = listePeriode.includes(2010) ? 2010 : listePeriode[0];
+
+// Récupérer les sexes sans doublons
+const listeSexe = [
+  ...new Set(populationMain.map((d) => d["Sexe"].trim()))
+];
 ---
 
 <Layout>
@@ -35,6 +40,26 @@ const anneeInitiale = listePeriode.includes(2010) ? 2010 : listePeriode[0];
           listePeriode.map((annee) => (
             <option value={annee} selected={annee === anneeInitiale}>
               {annee}
+            </option>
+          ))
+        }
+      </select>
+    </div>
+
+    <!-- FILTRE SEXE -->
+    <div class="mb-8 flex flex-col gap-2">
+      <label for="sexe" class="text-base font-semibold text-gray-800">
+        Choisir un sexe :
+      </label>
+
+      <select
+        id="sexe"
+        class="w-48 cursor-pointer rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+      >
+        {
+          listeSexe.map((sexe) => (
+            <option value={sexe} selected={sexe === "Total"}>
+              {sexe}
             </option>
           ))
         }
@@ -70,6 +95,10 @@ const anneeInitiale = listePeriode.includes(2010) ? 2010 : listePeriode[0];
   // Récupérer les éléments HTML
   const elmYear = document.getElementById("periode") as HTMLSelectElement;
 
+  const elmSexe = document.getElementById("sexe") as HTMLSelectElement;
+
+  let selectedSexe = elmSexe.value;
+
   const carte = document.getElementById("carte");
 
   const informations = document.getElementById("informations");
@@ -86,7 +115,7 @@ const anneeInitiale = listePeriode.includes(2010) ? 2010 : listePeriode[0];
     const populationFiltree = populationMain.filter(
       (d) =>
         d["Période"] === selectedYear &&
-        d["Sexe"].trim() === "Total" &&
+        d["Sexe"].trim() === selectedSexe &&
         d["Âge"].trim() === "Total" &&
         d["Niveau Géo"] === "Département",
     );
@@ -138,7 +167,7 @@ const anneeInitiale = listePeriode.includes(2010) ? 2010 : listePeriode[0];
     const graphique = Plot.plot({
       title: "Population des départements français",
 
-      subtitle: `Année ${selectedYear} — Sexe : Total — Âge : Total`,
+      subtitle: `Année ${selectedYear} — Sexe : ${selectedSexe} — Âge : Total`,
 
       caption: "Source : populationMain.json",
 
@@ -188,6 +217,13 @@ const anneeInitiale = listePeriode.includes(2010) ? 2010 : listePeriode[0];
   // Mettre à jour la carte quand l'année change
   elmYear.addEventListener("change", () => {
     selectedYear = Number(elmYear.value);
+
+    afficherCarte();
+  });
+
+  // Mettre à jour la carte lorsque le sexe change
+  elmSexe.addEventListener("change", () => {
+    selectedSexe = elmSexe.value;
 
     afficherCarte();
   });
