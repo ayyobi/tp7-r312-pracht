@@ -58,9 +58,9 @@ import "leaflet/dist/leaflet.css";
       }).addTo(map);
 
       // Afficher le nom au clic
-      marker.bindPopup(
-        document.createTextNode(etablissement.name ?? "Établissement"),
-      );
+      const contenu = document.createElement("span");
+      contenu.textContent = etablissement.name ?? "Établissement";
+      marker.bindPopup(contenu);
     });
 
     map.invalidateSize();

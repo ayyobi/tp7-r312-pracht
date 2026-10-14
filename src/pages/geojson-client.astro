@@ -2,68 +2,100 @@
 import Layout from "../layouts/Layout.astro";
 import populationMain from "../assets/populationMain.json";
 
-// Récupérer toutes les années sans doublons
+// 1. Liste des années sans doublons
 const listePeriode = [...new Set(populationMain.map((d) => d["Période"]))].sort(
   (a, b) => b - a,
 );
 
-// Sélectionner 2010 si disponible
+// 2. Liste des sexes sans doublons
+const listeSexe = [...new Set(populationMain.map((d) => d["Sexe"].trim()))];
+
+// 3. Liste des âges sans doublons
+const listeAge = [...new Set(populationMain.map((d) => d["Âge"].trim()))];
+
+// Année initiale
 const anneeInitiale = listePeriode.includes(2010) ? 2010 : listePeriode[0];
 
-// Récupérer les sexes sans doublons
-const listeSexe = [
-  ...new Set(populationMain.map((d) => d["Sexe"].trim()))
-];
+// Sexe initial
+const sexeInitial = listeSexe.includes("Total") ? "Total" : listeSexe[0];
+
+// Âge initial
+const ageInitial = listeAge.includes("Total") ? "Total" : listeAge[0];
 ---
 
 <Layout>
   <main class="mx-auto max-w-6xl px-6 py-10">
+    <!-- TITRE -->
     <h1 class="mb-4 text-3xl font-bold text-gray-900">
-      TP7 — Carte GeoJSON côté client
+      TP7 — Carte GeoJSON interactive
     </h1>
 
     <p class="mb-8 text-gray-600">
-      Population des départements français selon l'année sélectionnée.
+      Explorez la population des départements français selon l'année, le sexe et
+      la tranche d'âge.
     </p>
 
-    <!-- FILTRE ANNÉE -->
-    <div class="mb-8 flex flex-col gap-2">
-      <label for="periode" class="text-base font-semibold text-gray-800">
-        Choisir une année :
-      </label>
+    <!-- LES TROIS FILTRES -->
+    <div class="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
+      <!-- FILTRE ANNÉE -->
+      <div class="flex flex-col gap-2">
+        <label for="periode" class="text-base font-semibold text-gray-800">
+          Choisir une année :
+        </label>
 
-      <select
-        id="periode"
-        class="w-48 cursor-pointer rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-      >
-        {
-          listePeriode.map((annee) => (
-            <option value={annee} selected={annee === anneeInitiale}>
-              {annee}
-            </option>
-          ))
-        }
-      </select>
-    </div>
+        <select
+          id="periode"
+          class="w-full cursor-pointer rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+        >
+          {
+            listePeriode.map((annee) => (
+              <option value={annee} selected={annee === anneeInitiale}>
+                {annee}
+              </option>
+            ))
+          }
+        </select>
+      </div>
 
-    <!-- FILTRE SEXE -->
-    <div class="mb-8 flex flex-col gap-2">
-      <label for="sexe" class="text-base font-semibold text-gray-800">
-        Choisir un sexe :
-      </label>
+      <!-- FILTRE SEXE -->
+      <div class="flex flex-col gap-2">
+        <label for="sexe" class="text-base font-semibold text-gray-800">
+          Choisir un sexe :
+        </label>
 
-      <select
-        id="sexe"
-        class="w-48 cursor-pointer rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-      >
-        {
-          listeSexe.map((sexe) => (
-            <option value={sexe} selected={sexe === "Total"}>
-              {sexe}
-            </option>
-          ))
-        }
-      </select>
+        <select
+          id="sexe"
+          class="w-full cursor-pointer rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+        >
+          {
+            listeSexe.map((sexe) => (
+              <option value={sexe} selected={sexe === sexeInitial}>
+                {sexe}
+              </option>
+            ))
+          }
+        </select>
+      </div>
+
+      <!-- FILTRE ÂGE -->
+      <div class="flex flex-col gap-2">
+        <label for="age" class="text-base font-semibold text-gray-800">
+          Choisir une tranche d'âge :
+        </label>
+
+        <select
+          id="age"
+          class="w-full cursor-pointer rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+        >
+          {
+            listeAge.map((age) => (
+              <option value={age} selected={age === ageInitial}>
+                {age}
+              </option>
+            ))
+          }
+        </select>
+      </div>
     </div>
 
     <!-- INFORMATIONS -->
@@ -92,47 +124,84 @@ const listeSexe = [
   import departements from "../assets/departements.geojson.json";
   import populationMain from "../assets/populationMain.json";
 
-  // Récupérer les éléments HTML
+  // 1. Récupérer les trois menus
   const elmYear = document.getElementById("periode") as HTMLSelectElement;
 
   const elmSexe = document.getElementById("sexe") as HTMLSelectElement;
 
-  let selectedSexe = elmSexe.value;
+  const elmAge = document.getElementById("age") as HTMLSelectElement;
 
+  // 2. Récupérer les autres éléments
   const carte = document.getElementById("carte");
 
   const informations = document.getElementById("informations");
 
-  // Année sélectionnée
+  // 3. Récupérer les valeurs sélectionnées
   let selectedYear = Number(elmYear.value);
 
-  // Fonction pour construire la carte
-  function afficherCarte() {
-    console.log("--------------------------");
-    console.log("Année sélectionnée :", selectedYear);
+  let selectedSexe = elmSexe.value;
 
-    // 1. Filtrer les données
+  let selectedAge = elmAge.value;
+
+  // Remplir un menu avec les valeurs données en conservant la sélection si possible
+  function remplirMenu(menu: HTMLSelectElement, valeurs: string[]) {
+    const precedente = menu.value;
+
+    const choix = valeurs.includes(precedente)
+      ? precedente
+      : valeurs.includes("Total")
+        ? "Total"
+        : valeurs[0];
+
+    menu.replaceChildren(
+      ...valeurs.map((valeur) => {
+        const option = document.createElement("option");
+        option.value = valeur;
+        option.textContent = valeur;
+        option.selected = valeur === choix;
+        return option;
+      }),
+    );
+
+    return choix;
+  }
+
+  // Ne proposer que les sexes et les âges disponibles pour la sélection
+  function mettreAJourMenus() {
+    const donneesAnnee = populationMain.filter(
+      (d) => d["Période"] === selectedYear && d["Niveau Géo"] === "Département",
+    );
+
+    selectedSexe = remplirMenu(elmSexe, [
+      ...new Set(donneesAnnee.map((d) => d["Sexe"].trim())),
+    ]);
+
+    selectedAge = remplirMenu(elmAge, [
+      ...new Set(
+        donneesAnnee
+          .filter((d) => d["Sexe"].trim() === selectedSexe)
+          .map((d) => d["Âge"].trim()),
+      ),
+    ]);
+  }
+
+  // 4. Fonction qui affiche la carte
+  function afficherCarte() {
+    // Filtrer les données selon les trois critères
     const populationFiltree = populationMain.filter(
       (d) =>
         d["Période"] === selectedYear &&
         d["Sexe"].trim() === selectedSexe &&
-        d["Âge"].trim() === "Total" &&
+        d["Âge"].trim() === selectedAge &&
         d["Niveau Géo"] === "Département",
     );
 
-    console.log("Nombre de données trouvées :", populationFiltree.length);
-
-    console.log(
-      "Première donnée trouvée :",
-      populationFiltree[0] ?? "Aucune donnée",
-    );
-
-    // 2. Associer les départements à leur population
+    // Associer chaque département à sa population
     const populationParDepartement = new Map(
       populationFiltree.map((d) => [d["Géographie"].trim(), d["Valeur"]]),
     );
 
-    // 3. Ajouter les populations au GeoJSON
+    // Ajouter les populations au GeoJSON
     const departementsAvecPopulation = {
       ...departements,
 
@@ -148,30 +217,38 @@ const listeSexe = [
       })),
     };
 
-    // 4. Compter les départements avec des données
+    // Compter les départements avec des données
     const departementsAvecDonnees = departementsAvecPopulation.features.filter(
       (d) => d.properties.population !== null,
     ).length;
 
-    console.log("Départements avec des données :", departementsAvecDonnees);
-
-    // 5. Afficher les informations
+    // Afficher les informations
     if (informations) {
       informations.textContent =
         `Année : ${selectedYear} | ` +
+        `Sexe : ${selectedSexe} | ` +
+        `Âge : ${selectedAge} | ` +
         `Lignes trouvées : ${populationFiltree.length} | ` +
         `Départements avec données : ${departementsAvecDonnees}`;
     }
 
-    // 6. Créer la carte
+    // Afficher les informations dans la console
+    console.log("--------------------------");
+    console.log("Année :", selectedYear);
+    console.log("Sexe :", selectedSexe);
+    console.log("Âge :", selectedAge);
+    console.log("Lignes trouvées :", populationFiltree.length);
+    console.log("Départements avec données :", departementsAvecDonnees);
+
+    // Créer le graphique
     const graphique = Plot.plot({
       title: "Population des départements français",
 
-      subtitle: `Année ${selectedYear} — Sexe : ${selectedSexe} — Âge : Total`,
+      subtitle: `Année ${selectedYear} — Sexe : ${selectedSexe} — Âge : ${selectedAge}`,
 
       caption: "Source : populationMain.json",
 
-      ariaLabel: `Carte des départements français selon leur population en ${selectedYear}`,
+      ariaLabel: `Carte des départements français selon leur population en ${selectedYear}, sexe ${selectedSexe}, âge ${selectedAge}`,
 
       width: 850,
 
@@ -205,26 +282,44 @@ const listeSexe = [
       ],
     });
 
-    // 7. Remplacer l'ancienne carte
+    // Remplacer l'ancienne carte
     if (carte) {
       carte.replaceChildren(graphique);
     }
   }
 
   // Afficher la carte au chargement
+  mettreAJourMenus();
   afficherCarte();
 
-  // Mettre à jour la carte quand l'année change
+  // Changement d'année
   elmYear.addEventListener("change", () => {
     selectedYear = Number(elmYear.value);
-
+    mettreAJourMenus();
     afficherCarte();
   });
 
-  // Mettre à jour la carte lorsque le sexe change
+  // Changement de sexe
   elmSexe.addEventListener("change", () => {
     selectedSexe = elmSexe.value;
+    selectedAge = remplirMenu(elmAge, [
+      ...new Set(
+        populationMain
+          .filter(
+            (d) =>
+              d["Période"] === selectedYear &&
+              d["Niveau Géo"] === "Département" &&
+              d["Sexe"].trim() === selectedSexe,
+          )
+          .map((d) => d["Âge"].trim()),
+      ),
+    ]);
+    afficherCarte();
+  });
 
+  // Changement d'âge
+  elmAge.addEventListener("change", () => {
+    selectedAge = elmAge.value;
     afficherCarte();
   });
 </script>
