@@ -9,16 +9,21 @@ const plot = Plot.plot({
   document: new JSDOM("").window.document,
 });
 
-// Corriger les attributs ARIA des éléments SVG
 const svg =
   plot.tagName.toLowerCase() === "svg" ? plot : plot.querySelector("svg");
 
 if (svg) {
-  // Donner un rôle explicite au graphique
+  // Le graphique principal possède un nom accessible
   svg.setAttribute("role", "img");
 
-  // Les éléments internes sont décoratifs
-  svg.querySelectorAll("rect[aria-label], g[aria-label]").forEach((element) => {
+  svg.setAttribute(
+    "aria-label",
+    options.ariaLabel || options.title || "Graphique de données",
+  );
+
+  // Masquer les éléments graphiques internes
+  // car le SVG principal possède déjà une description
+  svg.querySelectorAll("rect, g").forEach((element) => {
     element.removeAttribute("aria-label");
   });
 }
