@@ -1,0 +1,70 @@
+---
+import Layout from "../layouts/Layout.astro";
+
+// Importer le CSS de Leaflet
+import "leaflet/dist/leaflet.css";
+---
+
+<Layout>
+  <main class="p-8">
+    <h1 class="text-3xl font-bold mb-4">TP7 — Carte interactive Leaflet</h1>
+
+    <p class="mb-6">Carte interactive de la France avec Leaflet.js.</p>
+
+    <!-- Emplacement de la carte -->
+    <div
+      id="map"
+      style="height: 600px; width: 100%;"
+      aria-label="Carte interactive de la France"
+    >
+    </div>
+  </main>
+</Layout>
+
+<script>
+  import L from "leaflet";
+  import etablissements from "../assets/listeEtablissements.json";
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const mapElement = document.getElementById("map");
+
+    if (!mapElement) return;
+
+    // Créer la carte de France
+    const map = L.map(mapElement).setView([46.6033, 1.883], 6);
+
+    // Afficher le fond de carte
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19,
+    }).addTo(map);
+
+    // Parcourir tous les établissements
+    etablissements.forEach((etablissement) => {
+      // Vérifier les coordonnées
+      if (
+        typeof etablissement.lat !== "number" ||
+        typeof etablissement.lon !== "number"
+      ) {
+        return;
+      }
+
+      // Créer un marqueur pour chaque établissement
+      const marker = L.circleMarker([etablissement.lat, etablissement.lon], {
+        radius: 5,
+        color: "#2563eb",
+        fillOpacity: 0.7,
+      }).addTo(map);
+
+      // Afficher le nom au clic
+      marker.bindPopup(
+        document.createTextNode(etablissement.name ?? "Établissement"),
+      );
+    });
+
+    map.invalidateSize();
+
+    console.log(`${etablissements.length} établissements chargés`);
+  });
+</script>
