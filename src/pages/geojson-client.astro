@@ -1,0 +1,97 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout>
+  <main class="p-8">
+    <h1 class="text-3xl font-bold mb-4">TP7 — Carte GeoJSON côté client</h1>
+
+    <p class="mb-6">Population des départements français en 2010.</p>
+
+    <!-- JavaScript placera le graphique ici -->
+    <div id="carte"></div>
+  </main>
+</Layout>
+
+<script>
+  import * as Plot from "@observablehq/plot";
+
+  import departements from "../assets/departements.geojson.json";
+  import populationMain from "../assets/populationMain.json";
+
+  // 1. Filtrer les données de population
+  const populationFiltree = populationMain.filter(
+    (d) =>
+      d["Période"] === 2010 &&
+      d["Sexe"].trim() === "Total" &&
+      d["Âge"].trim() === "Total" &&
+      d["Niveau Géo"] === "Département",
+  );
+
+  // 2. Associer chaque département à sa population
+  const populationParDepartement = new Map(
+    populationFiltree.map((d) => [d["Géographie"].trim(), d["Valeur"]]),
+  );
+
+  // 3. Ajouter la population aux départements GeoJSON
+  const departementsAvecPopulation = {
+    ...departements,
+
+    features: departements.features.map((departement) => ({
+      ...departement,
+
+      properties: {
+        ...departement.properties,
+
+        population:
+          populationParDepartement.get(departement.properties.nom) ?? null,
+      },
+    })),
+  };
+
+  // 4. Créer le graphique dans le navigateur
+  const graphique = Plot.plot({
+    title: "Population des départements français",
+
+    subtitle: "Année 2010 — Sexe : Total — Âge : Total",
+
+    caption: "Source : populationMain.json",
+
+    ariaLabel:
+      "Carte des départements français colorés selon leur population en 2010",
+
+    projection: {
+      type: "mercator",
+      domain: departements,
+    },
+
+    color: {
+      scheme: "blues",
+      legend: true,
+      label: "Nombre d'habitants",
+      unknown: "#eeeeee",
+    },
+
+    marks: [
+      Plot.geo(departementsAvecPopulation, {
+        fill: (d) => d.properties.population,
+        stroke: "white",
+        strokeWidth: 0.5,
+
+        title: (d) =>
+          `${d.properties.nom} : ${
+            d.properties.population === null
+              ? "Données indisponibles"
+              : d.properties.population.toLocaleString("fr-FR") + " habitants"
+          }`,
+      }),
+    ],
+  });
+
+  // 5. Afficher le graphique dans la page
+  const carte = document.getElementById("carte");
+
+  if (carte) {
+    carte.appendChild(graphique);
+  }
+</script>
