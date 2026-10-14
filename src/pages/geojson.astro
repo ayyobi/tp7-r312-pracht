@@ -1,0 +1,37 @@
+---
+import Layout from "../layouts/Layout.astro";
+import PlotFigure from "../components/PlotFigure.astro";
+import * as Plot from "@observablehq/plot";
+
+import departements from "../assets/departements.geojson.json";
+---
+
+<Layout>
+  <main class="p-8">
+    <h1 class="text-3xl font-bold mb-4">TP7 — Carte GeoJSON de la France</h1>
+
+    <p class="mb-6">Carte des départements français avec Observable Plot.</p>
+
+    <PlotFigure
+      options={{
+        title: "Les départements français",
+        subtitle: "Visualisation des limites départementales",
+        caption: "Source : fichier departements.geojson.json",
+        ariaLabel: "Carte des départements français",
+
+        projection: {
+          type: "mercator",
+          domain: departements,
+        },
+
+        marks: [
+          Plot.geo(departements, {
+            fill: "#dbeafe",
+            stroke: "#2563eb",
+            strokeWidth: 0.5,
+          }),
+        ],
+      }}
+    />
+  </main>
+</Layout>
