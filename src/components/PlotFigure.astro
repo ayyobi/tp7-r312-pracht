@@ -1,9 +1,27 @@
 ---
 import * as Plot from "@observablehq/plot";
 import { JSDOM } from "jsdom";
+
 const { options } = Astro.props;
 
-const plot = Plot.plot({ ...options, document: new JSDOM("").window.document });
+const plot = Plot.plot({
+  ...options,
+  document: new JSDOM("").window.document,
+});
+
+// Corriger les attributs ARIA des éléments SVG
+const svg =
+  plot.tagName.toLowerCase() === "svg" ? plot : plot.querySelector("svg");
+
+if (svg) {
+  // Donner un rôle explicite au graphique
+  svg.setAttribute("role", "img");
+
+  // Les éléments internes sont décoratifs
+  svg.querySelectorAll("rect[aria-label], g[aria-label]").forEach((element) => {
+    element.removeAttribute("aria-label");
+  });
+}
 ---
 
 <div set:html={plot.outerHTML} />
