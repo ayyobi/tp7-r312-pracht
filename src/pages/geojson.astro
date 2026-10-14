@@ -4,31 +4,82 @@ import PlotFigure from "../components/PlotFigure.astro";
 import * as Plot from "@observablehq/plot";
 
 import departements from "../assets/departements.geojson.json";
+import populationMain from "../assets/populationMain.json";
+
+// 1. Sélectionner les données de population
+const populationFiltree = populationMain.filter(
+  (d) =>
+    d["Période"] === 2010 &&
+    d["Sexe"].trim() === "Total" &&
+    d["Âge"].trim() === "Total" &&
+    d["Niveau Géo"] === "Département",
+);
+
+// 2. Créer une liste qui associe département et population
+const populationParDepartement = new Map(
+  populationFiltree.map((d) => [d["Géographie"].trim(), d["Valeur"]]),
+);
+
+// 3. Ajouter la population à chaque département GeoJSON
+const departementsAvecPopulation = {
+  ...departements,
+
+  features: departements.features.map((departement) => ({
+    ...departement,
+
+    properties: {
+      ...departement.properties,
+
+      population:
+        populationParDepartement.get(departement.properties.nom) ?? null,
+    },
+  })),
+};
 ---
 
 <Layout>
   <main class="p-8">
-    <h1 class="text-3xl font-bold mb-4">TP7 — Carte GeoJSON de la France</h1>
+    <h1 class="text-3xl font-bold mb-4">
+      TP7 — Population des départements français
+    </h1>
 
-    <p class="mb-6">Carte des départements français avec Observable Plot.</p>
+    <p class="mb-6">Population par département en 2010.</p>
 
     <PlotFigure
       options={{
-        title: "Les départements français",
-        subtitle: "Visualisation des limites départementales",
-        caption: "Source : fichier departements.geojson.json",
-        ariaLabel: "Carte des départements français",
+        title: "Population des départements français",
+        subtitle: "Année 2010 — Sexe : Total — Âge : Total",
+        caption: "Source : populationMain.json",
+        ariaLabel:
+          "Carte des départements français colorés selon leur population en 2010",
 
         projection: {
           type: "mercator",
           domain: departements,
         },
 
+        color: {
+          scheme: "blues",
+          legend: false,
+          label: "Nombre d'habitants",
+          unknown: "#eeeeee",
+        },
+
         marks: [
-          Plot.geo(departements, {
-            fill: "#dbeafe",
-            stroke: "#2563eb",
+          Plot.geo(departementsAvecPopulation, {
+            fill: (d) => d.properties.population,
+            stroke: "white",
             strokeWidth: 0.5,
+
+            tip: true,
+
+            title: (d) =>
+              `${d.properties.nom} : ${
+                d.properties.population === null
+                  ? "Données indisponibles"
+                  : d.properties.population.toLocaleString("fr-FR") +
+                    " habitants"
+              }`,
           }),
         ],
       }}
